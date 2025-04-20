@@ -110,7 +110,7 @@ server <- function(input, output, session) {
         axis.title.y = element_text(size = 20, face = "bold", vjust = 2),
         axis.text.y = element_text(size = 17, face = "bold"),
         axis.text.x = element_text(size = 17, face = "bold", angle = 45, hjust = 2),
-        plot.title = element_text(size = 24, face = "bold", vjust = 1)
+        plot.title = element_text(size = 24, face = "bold")
       )
   })
 }
