@@ -103,7 +103,6 @@ server <- function(input, output, session) {
       theme(
         panel.grid.major = element_line(color = "gray30", size = 0.40),
         panel.grid.minor = element_line(color = "gray30", size = 0.40),
-        text=element_text(family="URWHelvetica"),
         plot.subtitle = element_text(size = 16),
         legend.text = element_text(size = 15),
         legend.title = element_text(size = 16, face = "bold"),
@@ -111,7 +110,7 @@ server <- function(input, output, session) {
         axis.title.y = element_text(size = 20, face = "bold", vjust = 2),
         axis.text.y = element_text(size = 17, face = "bold"),
         axis.text.x = element_text(size = 17, face = "bold", angle = 45, hjust = 2),
-        plot.title = element_text(size = 24, face = "bold", vjust = 2)
+        plot.title = element_text(size = 24, face = "bold", vjust = 1)
       )
   })
 }
