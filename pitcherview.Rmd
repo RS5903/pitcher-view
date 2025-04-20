@@ -1,0 +1,136 @@
+---
+title: "PitcherView"
+output: html_document
+runtime: shiny
+urlcolor: blue
+---
+
+```{r}
+
+
+library(tidyverse)
+library(lubridate)
+library(shiny)
+dataS = read.csv("data/dataS.csv")
+```
+
+
+```{r}
+
+ui <- fluidPage(
+    tags$div(style = "text-align: left; margin-bottom: 20px;",
+    tags$h1("Average MLB Pitcher Velocity by Pitch Type by Value of Count."),
+    tags$p("This applet allows you to plot the average velocities of each pitch type thrown by a specified pitcher over the entire count. Furthermore, one can specify a date range to view how pitching behavior changes through the season. 
+           All pitchers with > 10 IP in a season are represented. 
+           Data is pitch-by-pitch data sourced from MLB Statcast for the entire 2024 regular MLB season.")
+  ),
+  tags$style(HTML("
+    body, html {
+      height: 100%;
+      margin: 0;
+    }
+    .centered-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 50vh;
+    }
+  ")),
+  tags$div(class = "centered-container",
+    tags$div(style = "max-width: 1400px; width: 100%;",
+      sidebarLayout(
+        sidebarPanel(
+          sliderInput("game_date", "Select Month Range:",
+                      min = 4, max = 9, value = c(4, 9), step = 1),
+          selectInput("pitcher_name", "Select Pitcher:",
+                      choices = NULL,
+                      selected = NULL),
+          checkboxGroupInput("pitch_name", "Select Pitch Type(s):",
+                             choices = NULL,
+                             selected = NULL)
+        ),
+        mainPanel(
+          plotOutput("linePlot",width = "1000px")
+        )
+      )
+    )
+  )
+)
+server <- function(input, output, session) {
+  validPitchers <- reactive({
+    dataS |>
+      filter(game_date >= input$game_date[1], game_date <= input$game_date[2]) |>
+      group_by(pitcher_name) |>
+      summarise(total = n(), .groups = 'drop') |>
+      filter(total > 0) |>
+      pull(pitcher_name)
+  })
+
+  observe({
+    pitchers <- validPitchers()
+    updateSelectInput(session, "pitcher_name",
+                      choices = pitchers,
+                      selected = ifelse(input$pitcher_name %in% pitchers, input$pitcher_name, pitchers[1]))
+  })
+
+  observeEvent(input$pitcher_name, {
+    req(input$pitcher_name)
+    validPitches <- dataS |>
+      filter(pitcher_name == input$pitcher_name,
+             game_date >= input$game_date[1], game_date <= input$game_date[2]) |>
+      pull(pitch_name) |>
+      unique()
+    updateCheckboxGroupInput(session, "pitch_name",
+                             choices = validPitches,
+                             selected = validPitches)
+  })
+
+  appData <- reactive({
+    req(input$pitcher_name, input$pitch_name)
+    dataS |>
+      filter(
+        game_date >= input$game_date[1], game_date <= input$game_date[2],
+        pitcher_name == input$pitcher_name,
+        pitch_name %in% input$pitch_name
+      ) |>
+      group_by(count, pitch_name) |>
+      summarise(mV = mean(mV), .groups = 'drop')
+  })
+
+  output$linePlot <- renderPlot({
+    plot_data <- appData()
+    req(nrow(plot_data) > 0)
+    ggplot(plot_data, aes(x = count, y = mV, color = pitch_name, group = pitch_name)) +
+      stat_summary(fun = mean, geom = "line", size = 1.5) +
+      scale_color_brewer(palette = "Set1") +
+      labs(
+        title = paste("Average Velocity by Count for", input$pitcher_name),
+        subtitle = paste("For the 2024 Regular MLB Season"),
+        x = "Count",
+        y = "Average Velocity (mph)",
+        color = "Pitch Type"
+      ) +
+      theme_minimal(base_size = 18) +
+      theme_linedraw() + 
+      theme(
+         panel.grid.major = element_line(color = "gray30", size = 0.40),
+  panel.grid.minor = element_line(color = "gray30", size = 0.40),
+        text=element_text(family="URWHelvetica"), 
+        plot.subtitle = element_text(size = 16), 
+        legend.text = element_text(size = 15),
+        legend.title = element_text(size = 16, face = "bold"), 
+        axis.title.x = element_text(size = 20, face = "bold", hjust = 2),
+        axis.title.y = element_text(size = 20, face = "bold", vjust = 2),
+        axis.text.y = element_text(size = 17, face = "bold"),
+        axis.text.x = element_text(size = 17, face = "bold", angle = 45, hjust = 2),
+        plot.title = element_text(size = 24, face = "bold", vjust = 2)
+      )
+  })
+}
+
+shinyApp(ui, server)
+```
+
+
+
+
